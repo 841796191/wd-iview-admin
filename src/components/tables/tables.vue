@@ -1,15 +1,25 @@
 <template>
   <div>
     <div v-if="searchable && searchPlace === 'top'" class="search-con search-con-top">
-      <Select v-model="searchKey" class="search-col">
+      <!-- <Select v-model="searchKey" class="search-col">
         <Option v-for="item in columns" :value="item.key" :key="`search-col-${item.key}`">
           <template v-if="item.key !== 'handle'">
             {{ item.title }}
           </template>
         </Option>
+      </Select> -->
+      <Select class="search-col" @on-select="handleSelect">
+        <template v-for="(item,index) in columns">
+          <Option
+            :value="index"
+            :key="`search-col-${item.key}`"
+            v-if="!item.hidden"
+          >{{ item.title }}</Option>
+        </template>
       </Select>
       <Input @on-change="handleClear" clearable placeholder="输入关键字搜索" class="search-input" v-model="searchValue"/>
       <Button @click="handleSearch" class="search-btn" type="primary"><Icon type="search"/>&nbsp;&nbsp;搜索</Button>
+      <slot name="table-header"></slot>
     </div>
     <Table
       ref="tablesMain"
@@ -41,6 +51,10 @@
       <slot name="header" slot="header"></slot>
       <slot name="footer" slot="footer"></slot>
       <slot name="loading" slot="loading"></slot>
+      <template slot-scope="{ row, index }" slot="action">
+        <Icon type="md-build" size="22" style="margin-right: 5px" @click.stop="editRow(row, index)"></Icon>
+        <Icon type="md-trash" size="22" @click.stop="removeRow(row, index)"></Icon>
+      </template>
     </Table>
     <div v-if="searchable && searchPlace === 'bottom'" class="search-con search-con-top">
       <Select v-model="searchKey" class="search-col">
@@ -160,6 +174,14 @@ export default {
     }
   },
   methods: {
+    handleSelect (index) {
+      const idx = index.value
+      this.chooseItem = this.columns[idx].search
+      this.searchKey = this.columns[idx].key
+      this.searchValue = ['select', 'date'].includes(this.chooseItem.type)
+        ? []
+        : ''
+    },
     suportEdit (item, index) {
       item.render = (h, params) => {
         return h(TablesEdit, {
@@ -264,6 +286,12 @@ export default {
     },
     onExpand (row, status) {
       this.$emit('on-expand', row, status)
+    },
+    editRow (row, index) {
+      this.$emit('on-row-edit', row, index)
+    },
+    removeRow (row, index) {
+      this.$emit('on-row-remove', row, index)
     }
   },
   watch: {
