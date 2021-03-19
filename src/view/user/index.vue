@@ -53,6 +53,11 @@
     @editEvent="handleItemAdd"
     @changeEvent="handleAddChangeEvent">
     </AddModel>
+    <BatchSet
+    :isShow="showSet"
+    @editEvent="handleItemSet"
+    @changeEvent="handleSetChangeEvent"
+    ></BatchSet>
   </div>
 </template>
 
@@ -62,31 +67,33 @@ import dayjs from 'dayjs'
 import { userDispatch } from '@/api/admin'
 import EditModel from './edit'
 import AddModel from './add'
+import BatchSet from './batchSet'
 export default {
   name: 'user_management',
   components: {
     Tables,
     EditModel,
-    AddModel
+    AddModel,
+    BatchSet
   },
   data () {
     return {
       page: 1,
       limit: 10,
       total: 0,
-      option: {},
+      option: {}, // 接收要搜索的值
       roles: [],
       showEdit: false, // 编辑框
       showAdd: false, // 新增框
       showSet: false, // 批量设置框
-      currentIndex: 0,
+      currentIndex: 0, // 记录要修改、删除的下标
       currentItem: {},
       columns: [
         {
           type: 'selection',
           width: 60,
           align: 'center',
-          hidden: true
+          hidden: true // 搜索框展示选项时隐藏
         },
         {
           title: '用户昵称',
@@ -230,6 +237,7 @@ export default {
     onPageSizeChange (size) {
       this.limit = size
     },
+
     // 显示编辑模态框并传递数据
     handleRowEdit (row, index) {
       this.showEdit = true
@@ -246,6 +254,7 @@ export default {
         }
       })
     },
+
     // 显示新增用户框
     handleAddUser () {
       this.showAdd = true
@@ -258,9 +267,11 @@ export default {
         }
       })
     },
+    // 控制新增框显隐
     handleAddChangeEvent (value) {
       this.showAdd = value
     },
+
     // 接收模态框显隐变量
     handleChangeEvent (value) {
       this.showEdit = value
@@ -281,25 +292,96 @@ export default {
         }
       })
     },
+
     // 导出表格
     exportExcel () {
       this.$refs.tables.exportCsv({
         filename: `table-${new Date().valueOf()}.csv`
       })
     },
+
+    // 批量选择
+    handleSelect (selection) {
+      this.selection = selection
+    },
     // 批量删除
     handleDeleteBatch () {
-
+      if (this.selection.length === 0) {
+        this.$Message.info('请选择需要删除的数据')
+        return
+      }
+      const msg = this.selection.map(o => o.username).join(',')
+      this.$Modal.confirm({
+        title: '确定删除用户吗',
+        content: `删除${msg}用户`,
+        onOk: () => {
+          const arr = this.selection.map((o) => o._id)
+          userDispatch.use('delete', { ids: arr }).then((res) => {
+            // 直接本地过滤删除数据,减少请求
+            this.tableData = this.tableData.filter((item) => !arr.includes(item._id))
+            this.$Message.success('删除成功')
+          })
+        },
+        onCancel: () => {
+          this.$Message.info('取消操作')
+        }
+      })
     },
-    // 批量设置
+    // 批量设置模态框控制
     handleSetBatch () {
+      if (this.selection.length === 0) {
+        this.$Message.info('请选择需要设置的数据')
+        return
+      }
+      this.showSet = true
+    },
+    // 取消批量设置
+    handleSetChangeEvent (value) {
+      this.showSet = value
+    },
+    // 批量设置 -> 请求
+    handleItemSet (settings) {
+      console.log('settings: ', settings)
+      const msg = this.selection.map((o) => o.username).join(',')
+      this.$Modal.confirm({
+        title: '确定修改用户吗',
+        content: `修改${msg}用户`,
+        onOk: () => {
+          const arr = this.selection.map((o) => o._id)
+          userDispatch.use('batch', { ids: arr, settings }).then((res) => {
+            this.tableData.map((item) => {
+              if (arr.includes(item._id)) {
+                for (var keys of Object.keys(settings)) {
+                  // 请求成功, 按照id修改本地数据
+                  item[keys] = settings[keys]
+                }
+              }
+            })
+            this.$Message.success('批量设置成功')
+          })
+        }
+      })
+    },
 
+    // 搜索
+    handleSearch (value) {
+      // 判断是否有新的查询内容的传递，把分页数据归0
+      if (
+        (typeof this.option.search !== 'undefined' &&
+          value.search !== this.option.search) ||
+        this.option === {}
+      ) {
+        this.page = 1 // 从1开始
+      }
+      this.option = value // 要搜索的值
+      this._getlist()
     },
     // 获取用户列表
     _getlist () {
       userDispatch.use('get', {
         page: this.page - 1,
-        limit: this.limit
+        limit: this.limit,
+        option: this.option
       }).then((res) => {
         if (res.code === 200) {
           console.log('data: ', res.data)

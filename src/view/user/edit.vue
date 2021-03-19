@@ -193,6 +193,7 @@ export default {
       this.$refs.table.validate((valid) => {
         if (valid) {
           this.loading = false
+          // 重置表单   每次进入编辑模态框都会给localItem赋值,所以可以不要重置表单
           // this.$refs.table.resetFields()
           this.$emit('changeEvent', false)
           this.$emit('editEvent', this.localItem)

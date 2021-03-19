@@ -9,7 +9,9 @@
         </Option>
       </Select> -->
       <Select class="search-col" @on-select="handleSelect">
+        <!-- template不能绑定key -->
         <template v-for="(item,index) in columns">
+          <!-- 通过handleSelect拿到:value=index,这样就知道用户选择了那个选项 -->
           <Option
             :value="index"
             :key="`search-col-${item.key}`"
@@ -17,7 +19,8 @@
           >{{ item.title }}</Option>
         </template>
       </Select>
-      <Input @on-change="handleClear" clearable placeholder="输入关键字搜索" class="search-input" v-model="searchValue"/>
+      <Search :value="searchValue" :item="chooseItem" @changeEvent="handleSearchInput"></Search>
+      <!-- <Input @on-change="handleClear" clearable placeholder="输入关键字搜索" class="search-input" v-model="searchValue"/> -->
       <Button @click="handleSearch" class="search-btn" type="primary"><Icon type="search"/>&nbsp;&nbsp;搜索</Button>
       <slot name="table-header"></slot>
     </div>
@@ -73,10 +76,14 @@
 
 <script>
 import TablesEdit from './edit.vue'
+import Search from './search'
 import handleBtns from './handle-btns'
 import './index.less'
 export default {
   name: 'Tables',
+  components: {
+    Search
+  },
   props: {
     value: {
       type: Array,
@@ -165,6 +172,7 @@ export default {
    */
   data () {
     return {
+      chooseItem: {},
       insideColumns: [],
       insideTableData: [],
       edittingCellId: '',
@@ -174,13 +182,34 @@ export default {
     }
   },
   methods: {
+    // 保存选择框选项
     handleSelect (index) {
+      // 拿到的index是一个对象
       const idx = index.value
-      this.chooseItem = this.columns[idx].search
-      this.searchKey = this.columns[idx].key
+      // 根据index拿到搜索选项
+      this.chooseItem = this.columns[idx].search // 搜索默认值
+      this.searchKey = this.columns[idx].key // 搜索关键key
       this.searchValue = ['select', 'date'].includes(this.chooseItem.type)
         ? []
         : ''
+    },
+    // 接收Search组件传递的数据,拿到搜索值
+    handleSearchInput (item) {
+      // 判断搜索选项类型
+      if (this.chooseItem.type === 'input') {
+        this.searchValue = item.target.value // 当Search组件传递其input组件数据
+      } else {
+        this.searchValue = item
+      }
+      // console.log('searchValue: ', this.searchValue)
+    },
+    // 将搜索数据传递给父组件
+    handleSearch () {
+      this.$emit('searchEvent', {
+        item: this.searchKey, // 搜索选项
+        search: this.searchValue // 搜索值
+      })
+      // this.insideTableData = this.value.filter(item => item[this.searchKey].indexOf(this.searchValue) > -1)
     },
     suportEdit (item, index) {
       item.render = (h, params) => {
@@ -241,9 +270,6 @@ export default {
     handleClear (e) {
       if (e.target.value === '') this.insideTableData = this.value
     },
-    handleSearch () {
-      this.insideTableData = this.value.filter(item => item[this.searchKey].indexOf(this.searchValue) > -1)
-    },
     handleTableData () {
       this.insideTableData = this.value.map((item, index) => {
         const res = item
@@ -301,7 +327,7 @@ export default {
     },
     value (val) {
       this.handleTableData()
-      if (this.searchable) this.handleSearch()
+      // if (this.searchable) this.handleSearch()
     }
   },
   mounted () {

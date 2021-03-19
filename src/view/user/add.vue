@@ -205,7 +205,7 @@ export default {
           this.$emit('changeEvent', false)
           this.$emit('editEvent', { ...this.localItem })
           setTimeout(() => {
-            // 重置校验规则
+            // 重置表单
             this.$refs.table.resetFields()
           }, 0)
           this.$Message.info('添加成功！')
