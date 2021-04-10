@@ -46,6 +46,19 @@ module.exports = {
         }
       })
       .end()
+
+    config.module // 配置iview-loader
+      .rule('vue') // 别名
+      .test(/\.vue$/) // 使用该loader的文件
+      .use('iview-loader') // 使用哪个loader
+      .loader('iview-loader') // 同上
+      .tap(options => { // 配置选项
+        return {
+          prefix: true, // prefix设为true则所有iview组件可以使用i-xxx
+          ...options
+        }
+      })
+      .end()
   },
   // 设为false打包时不生成.map文件
   productionSourceMap: false,

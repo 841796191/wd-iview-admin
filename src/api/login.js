@@ -30,7 +30,7 @@ const forget = (option) => {
  * @return {*}
  */
 const login = (loginInfo) => {
-  return axios.post('/login/login', {
+  return axios.post('/public/adminlogin', {
     ...loginInfo
   })
 }

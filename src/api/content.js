@@ -12,6 +12,10 @@ const deletePostById = (id) => {
 const updatePostById = (data) => {
   return axios.post('/content/updateId', data)
 }
+// 批量设置
+const updatePostBatchById = (data) => {
+  return axios.post('/content/updatePostSettings', data)
+}
 
 // 标签管理
 const getTags = (options) => {
@@ -34,6 +38,7 @@ export {
   getList,
   deletePostById,
   updatePostById,
+  updatePostBatchById,
   getTags,
   addTag,
   removeTag,

@@ -79,14 +79,16 @@ export default {
         login({
           ...loginInfo
         }).then(res => {
-          const data = res.data
-          commit('setToken', res.token)
-          commit('setAvatar', data.pic)
-          commit('setUserName', data.name)
-          commit('setUserId', data._id)
-          commit('setAccess', data.roles) // 权限
-          commit('setHasGetInfo', true) // 是否获取用户信息
-          resolve(true)
+          if (res.code === 200) {
+            const data = res.data
+            commit('setToken', res.token)
+            commit('setAvatar', data.pic)
+            commit('setUserName', data.name)
+            commit('setUserId', data._id)
+            commit('setAccess', data.roles) // 权限
+            commit('setHasGetInfo', true) // 是否获取用户信息
+          }
+          resolve(res)
         }).catch(err => {
           reject(err)
         })

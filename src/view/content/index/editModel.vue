@@ -125,6 +125,9 @@ export default {
         isTop: '0',
         sort: 'created',
         tags: []
+      },
+      rules: {
+        title: [{ required: true, message: '标题不得为空', trigger: 'blur' }]
       }
     }
   },

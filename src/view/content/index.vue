@@ -8,9 +8,15 @@
       v-model="tableData"
       :columns="columns"
       @on-row-edit="handleRowEdit"
-      @on-row-remove="handleRowRemove"/>
+      @on-row-remove="handleRowRemove"
+      @on-selection-change="handleSelect"
+      @searchEvent="handleSearch"/>
       <Row type="flex" justify="space-between" align="middle">
-        <Button style="margin: 10px 0;" type="primary" @click="exportExcel">导出为Excel文件</Button>
+        <Col class="ctrls">
+          <Button @click="handleDeleteBatch()">批量删除</Button>
+          <Button @click="handleSetBatch()">批量设置</Button>
+          <Button style="margin: 10px 0;" type="primary" @click="exportExcel">导出表格</Button>
+        </Col>
         <Page
         :total="total"
         :current="page"
@@ -28,25 +34,31 @@
     :item="currentItem"
     @editEvent="handleItemEdit"
     @changeEvent="handleChangeEvent"></EditModel>
+    <BatchSet :isShow="showSet" @editEvent="handleItemSet" @changeEvent="handleSetChangeEvent"></BatchSet>
   </div>
 </template>
 
 <script>
 import Tables from '_c/tables'
 import EditModel from './index/editModel'
-import { getList, deletePostById, updatePostById } from '@/api/content'
+import BatchSet from './index/batchSet'
+import { getList, deletePostById, updatePostById, updatePostBatchById } from '@/api/content'
 import dayjs from 'dayjs'
 export default {
   name: 'content_management',
   components: {
     Tables,
-    EditModel
+    EditModel,
+    BatchSet
   },
   data () {
     return {
       page: 1,
       limit: 10,
       total: 0,
+      option: {},
+      selection: [], // 选择的搜索类型
+      showSet: false,
       showEdit: false, // 显示编辑框
       currentItem: '', // 编辑显示的数据
       currentIndex: 0, // 记录编辑哪个文章
@@ -89,7 +101,7 @@ export default {
           align: 'center',
           // 使用render结构化数据
           render: (h, params) => {
-            console.log('params: ', params)
+            // console.log('params: ', params)
             return h('div', [h('span', params.row.uid.name)])
           },
           search: {
@@ -257,6 +269,43 @@ export default {
     }
   },
   methods: {
+    // 批量删除
+    handleDeleteBatch () {
+      // 批量进行删除
+      if (this.selection.length === 0) {
+        this.$Message.info('请选择需要删除的数据！')
+        return
+      }
+      const msg = this.selection.map((o) => o.title).join(',')
+      this.$Modal.confirm({
+        title: '确定删除吗？',
+        content: `删除${msg}的文章吗？`,
+        onOk: () => {
+          const arr = this.selection.map((o) => o._id)
+          deletePostById(arr).then((res) => {
+            // this.tableData.splice(index, 1)
+            this.tableData = this.tableData.filter(
+              (item) => !arr.includes(item._id)
+            )
+            this.$Message.success('删除成功！')
+            //  this._getList()
+          })
+        },
+        onCancel: () => {
+          this.$Message.info('取消操作！')
+        }
+      })
+    },
+    // 批量设置
+    handleSetBatch () {
+      // 批量进行设置
+      if (this.selection.length === 0) {
+        this.$Message.info('请选择需要设置的数据！')
+        return
+      }
+      // 批量进行设置 -> vip, 禁言, 角色
+      this.showSet = true
+    },
     exportExcel () {
       this.$refs.tables.exportCsv({
         filename: `table-${(new Date()).valueOf()}.csv`
@@ -275,9 +324,54 @@ export default {
       this._getList()
     },
     _getList () {
-      getList({ page: this.page - 1, limit: this.limit }).then(res => {
+      getList({ page: this.page - 1, limit: this.limit, ...this.option }).then(res => {
         this.tableData = res.data
         this.total = res.total
+      })
+    },
+    // 选择
+    handleSelect (selection) {
+      this.selection = selection
+    },
+    // 控制批量设置模态框显隐
+    handleSetChangeEvent (value) {
+      this.showSet = value
+    },
+    // 搜索
+    handleSearch (value) {
+      // 判断是否有新的查询内容的传递，把分页数据归0
+      this.option = {}
+      this.page = 1
+      if (value.item === 'tags') {
+        value.item = 'tag'
+      }
+      this.option[value.item] = value.search
+      this._getList()
+    },
+    // 批量设置模态框
+    handleItemSet (settings) {
+      const msg = this.selection.map((o) => o.title).join(',')
+      this.$Modal.confirm({
+        title: '确定修改吗？',
+        content: `修改${msg}的文章吗`,
+        onOk: () => {
+          const arr = this.selection.map((o) => o._id)
+          updatePostBatchById({ ids: arr, settings }).then((res) => {
+            // this.tableData.splice(index, 1)
+            this.tableData.map((item) => {
+              if (arr.includes(item._id)) {
+                for (var keys of Object.keys(settings)) {
+                  item[keys] = settings[keys]
+                }
+              }
+            })
+            this.$Message.success('批量设置成功！')
+            //  this._getList()
+          })
+        },
+        onCancel: () => {
+          this.$Message.info('取消操作！')
+        }
       })
     },
     // 发送编辑数据给后台
@@ -330,6 +424,10 @@ export default {
 }
 </script>
 
-<style>
-
+<style lang="scss" scoped>
+.ctrls {
+  button {
+    margin-right: 10px;
+  }
+}
 </style>

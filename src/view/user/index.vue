@@ -45,16 +45,19 @@
     <EditModel
     :isShow="showEdit"
     :item="currentItem"
+    :roles="roles"
     @editEvent="handleItemEdit"
     @changeEvent="handleChangeEvent">
     </EditModel>
     <AddModel
     :isShow="showAdd"
+    :roles="roles"
     @editEvent="handleItemAdd"
     @changeEvent="handleAddChangeEvent">
     </AddModel>
     <BatchSet
     :isShow="showSet"
+    :roles="roles"
     @editEvent="handleItemSet"
     @changeEvent="handleSetChangeEvent"
     ></BatchSet>
@@ -64,7 +67,7 @@
 <script>
 import Tables from '_c/tables'
 import dayjs from 'dayjs'
-import { userDispatch } from '@/api/admin'
+import { userDispatch, roleDispatch } from '@/api/admin'
 import EditModel from './edit'
 import AddModel from './add'
 import BatchSet from './batchSet'
@@ -117,7 +120,10 @@ export default {
           align: 'center',
           minWidth: 260,
           render: (h, params) => {
-            return h('div', [h('span', params.row.roles.join(','))])
+            const roleNames = params.row.roles
+              .map((o) => this.roleNames[o])
+              .join(',')
+            return h('div', [h('span', roleNames)])
           },
           search: {
             type: 'select',
@@ -227,8 +233,18 @@ export default {
       selection: []
     }
   },
+  computed: {
+    roleNames () {
+      const tmp = {}
+      this.roles.forEach((item) => {
+        tmp[item.role] = item.name
+      })
+      return tmp
+    }
+  },
   mounted () {
     this._getlist()
+    this._getRoleName()
   },
   methods: {
     onPageChange (page) {
@@ -368,8 +384,7 @@ export default {
       // 判断是否有新的查询内容的传递，把分页数据归0
       if (
         (typeof this.option.search !== 'undefined' &&
-          value.search !== this.option.search) ||
-        this.option === {}
+          value.search !== this.option.search) || this.option === {}
       ) {
         this.page = 1 // 从1开始
       }
@@ -387,6 +402,15 @@ export default {
           console.log('data: ', res.data)
           this.tableData = res.data
           this.total = res.total
+        }
+      })
+    },
+
+    // 获取角色
+    _getRoleName () {
+      roleDispatch.use('roles').then((res) => {
+        if (res.code === 200) {
+          this.roles = res.data
         }
       })
     }

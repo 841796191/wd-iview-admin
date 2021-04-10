@@ -24,7 +24,7 @@
       </Input>
     </FormItem>
     <FormItem>
-      <Button @click="handleSubmit" type="primary" long>登录</Button>
+      <Button :loading="loading" @click="handleSubmit" type="primary" long>登录</Button>
     </FormItem>
   </Form>
 </template>
@@ -60,6 +60,10 @@ export default {
           { type: 'string', len: 4, message: '验证码长度不够', trigger: 'change' }
         ]
       }
+    },
+    loading: {
+      type: Boolean,
+      default: false
     }
   },
   data () {
